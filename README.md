@@ -163,7 +163,10 @@ This project highlights real-world DevOps and cloud engineering skills:
 
 ---
 
-![Architecture Diagram](Resources-CI_CD_Architecture/CI_CD_Architecture_Design.png)
+![Architecture Diagram - 1](Resources-CI_CD_Architecture/Microservice_Architecture.png)
+![Architecture Diagram - 2](Resources-CI_CD_Architecture/Cloud_Architecture.png)
+![Architecture Diagram - 3](Resources-CI_CD_Architecture/CI_CD_Architecture_Design.png)
+![Architecture Diagram - 4](Resources-CI_CD_Architecture/DB_Schema.png)
 
 ---
 
