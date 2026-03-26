@@ -1,7 +1,3 @@
-Here’s a **clean, professional GitHub README** you can copy directly into Visual Studio / GitHub. I formatted it with Markdown so it **looks polished and “pops” visually**.
-
----
-
 # 🚀 Aline Financial Banking Application Deployment
 
 ### _Microservices-Based Cloud Deployment with DevOps Automation_
@@ -156,9 +152,7 @@ This project highlights real-world DevOps and cloud engineering skills:
 
 ---
 
-## 📷 (Optional) Architecture Diagrams
-
-> You can add screenshots here from your presentation:
+## 📷 Architecture Diagrams
 
 - Microservices Architecture
 - Cloud Architecture
@@ -166,7 +160,7 @@ This project highlights real-world DevOps and cloud engineering skills:
 - Database Schema
 
 ```markdown
-![Architecture Diagram](C:\Users\Canal\OneDrive\Desktop\stuff\Python Projects\SmoothStacks\capstone-jenkins\Resources-CI_CD_Architecture\CI_CD_Architecture_Design.png)
+![Architecture Diagram](Resources-CI_CD_Architecture\CI_CD_Architecture_Design.png)
 ```
 
 ---
@@ -220,8 +214,3 @@ DevOps Engineer | Aspiring Data Specialist
 ### ⭐ If you found this project helpful, consider giving it a star!
 
 ---
-
-If you want, I can also:
-
-- Add **badges (AWS, Docker, Kubernetes)** to make it look even more professional
-- Customize it specifically for **SQL/Data Engineer roles** (since you’re pivoting 👀)
