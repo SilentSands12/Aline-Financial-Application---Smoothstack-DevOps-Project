@@ -161,9 +161,9 @@ This project highlights real-world DevOps and cloud engineering skills:
 - CI/CD Pipeline
 - Database Schema
 
-```markdown
+---
+
 ![Architecture Diagram](Resources-CI_CD_Architecture/CI_CD_Architecture_Design.png)
-```
 
 ---
 
