@@ -1,0 +1,118 @@
+# Ingress configuration for landing portal
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: aline-landing-portal-rules # Unique name for this Ingress resource
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing # ALB will be accessible from the internet
+    alb.ingress.kubernetes.io/target-type: ip # Targets are IP addresses
+    alb.ingress.kubernetes.io/group.name: aline-financial # Group name for ALB rules
+    alb.ingress.kubernetes.io/group.order: '10' # Rule priority within the group
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 3001}]' # ALB listens on port 3001 for HTTP traffic
+spec:
+  ingressClassName: alb # Specifies that this Ingress uses the ALB controller
+  rules:
+      - http:
+          paths:
+          - path: /
+            pathType: Prefix # Matches all paths starting with '/'
+            backend:
+              service:
+                name: landing-portal-service # Service to route traffic to
+                port:
+                  number: 3001 # Port of the service
+
+---
+# Ingress configuration for admin portal
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: aline-admin-portal-rules # Unique name for this Ingress resource
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing # ALB will be accessible from the internet
+    alb.ingress.kubernetes.io/target-type: ip # Targets are IP addresses
+    alb.ingress.kubernetes.io/group.name: aline-financial # Group name for ALB rules
+    alb.ingress.kubernetes.io/group.order: '20' # Rule priority within the group
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 3000}]' # ALB listens on port 3000 for HTTP traffic
+spec:
+  ingressClassName: alb # Specifies that this Ingress uses the ALB controller
+  rules:
+      - http:
+          paths:
+          - path: /
+            pathType: Prefix # Matches all paths starting with '/'
+            backend:
+              service:
+                name: admin-portal-service # Service to route traffic to
+                port:
+                  number: 3000 # Port of the service
+
+---
+# Ingress configuration for dashboard
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: aline-dashboard-rules # Unique name for this Ingress resource
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing # ALB will be accessible from the internet
+    alb.ingress.kubernetes.io/target-type: ip # Targets are IP addresses
+    alb.ingress.kubernetes.io/group.name: aline-financial # Group name for ALB rules
+    alb.ingress.kubernetes.io/group.order: '30' # Rule priority within the group
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 3007}]' # ALB listens on port 3007 for HTTP traffic
+spec:
+  ingressClassName: alb # Specifies that this Ingress uses the ALB controller
+  rules:
+      - http:
+          paths:
+          - path: /
+            pathType: Prefix # Matches all paths starting with '/'
+            backend:
+              service:
+                name: member-dashboard-service # Service to route traffic to
+                port:
+                  number: 3007 # Port of the service
+
+---
+# Ingress configuration for handling redirects
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: redirects # Unique name for this Ingress resource
+  annotations:
+      alb.ingress.kubernetes.io/scheme: internet-facing # ALB will be accessible from the internet
+      alb.ingress.kubernetes.io/target-type: ip # Targets are IP addresses
+      alb.ingress.kubernetes.io/group.name: aline-financial # Group name for ALB rules
+      alb.ingress.kubernetes.io/group.order: '50' # Rule priority within the group
+      alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTP": 443}]' # ALB listens on ports 80 and 443
+      alb.ingress.kubernetes.io/actions.landing-redirect: >
+        {"type": "redirect", "redirectConfig": {"protocol":"HTTP", "host":"#{host}","port":"3001", "path": "/", "query":"","statusCode":"HTTP_302"}}
+      alb.ingress.kubernetes.io/actions.admin-redirect: >
+        {"type": "redirect", "redirectConfig": {"protocol":"HTTP", "host":"#{host}","port":"3000", "path": "/", "query":"","statusCode":"HTTP_302"}}
+      alb.ingress.kubernetes.io/actions.dashboard-redirect: >
+        {"type": "redirect", "redirectConfig": {"protocol":"HTTP", "host":"#{host}","port":"3007", "path": "/", "query":"","statusCode":"HTTP_302"}}
+spec:
+  ingressClassName: alb # Specifies that this Ingress uses the ALB controller
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix # Matches all paths starting with '/'
+            backend:
+              service:
+                name: landing-redirect # Service for handling landing page redirects
+                port:
+                  name: use-annotation # Uses action defined in annotations for port configuration
+          - path: /admin
+            pathType: Prefix # Matches all paths starting with '/admin'
+            backend:
+              service:
+                name: admin-redirect # Service for handling admin page redirects
+                port:
+                  name: use-annotation # Uses action defined in annotations for port configuration
+          - path: /dashboard
+            pathType: Prefix # Matches all paths starting with '/dashboard'
+            backend:
+              service:
+                name: dashboard-redirect # Service for handling dashboard page redirects
+                port:
+                  name: use-annotation # Uses action defined in annotations for port configuration

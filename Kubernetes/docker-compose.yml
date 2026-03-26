@@ -1,0 +1,132 @@
+version: '3.8'
+
+services:
+  # Database service using MySQL
+  db:
+    image: mysql:latest  # Use the latest MySQL image
+    container_name: my-mysql-db  # Name of the MySQL container
+    environment:
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root_password  # Path to the root password secret file
+      MYSQL_DATABASE: aline_financial_db  # Name of the database to be created
+      MYSQL_USER: admin  # MySQL user with specified permissions
+    ports:
+      - "3307:3306"  # Map host port 3307 to container port 3306
+    secrets:
+      - mysql_root_password  # Secret for the MySQL root password
+      - mysql_password  # Secret for the MySQL user password
+    networks:
+      - aline-financial-network  # Connect to the custom network
+    volumes:
+      - /C/Users/Canal/OneDrive/Desktop/stuff/Python Projects/SmoothStacks/capstone/Dockerfiles/init-scripts:/docker-entrypoint-initdb.d  # Initialize database with scripts
+      - /C/Users/Canal/OneDrive/Desktop/stuff/Python Projects/SmoothStacks/capstone/Dockerfiles/data:/var/lib/mysql  # Persist MySQL data
+
+  # User microservice
+  user-microservice:
+    image: user-microservice:BuildJarFile  # Custom image for the user microservice
+    container_name: aline-user-microservice  # Name of the user microservice container
+    ports:
+      - "8070:8070"  # Map host port 8070 to container port 8070
+    depends_on:
+      - db  # Ensure the db service is started before this service
+    networks:
+      - aline-financial-network  # Connect to the custom network
+
+  # Underwriter microservice
+  underwriter-microservice:
+    image: underwriter-microservice:BuildJarFile  # Custom image for the underwriter microservice
+    container_name: aline-underwriter-microservice  # Name of the underwriter microservice container
+    ports:
+      - "8071:8071"  # Map host port 8071 to container port 8071
+    depends_on:
+      - db  # Ensure the db service is started before this service
+    networks:
+      - aline-financial-network  # Connect to the custom network
+
+  # Bank microservice
+  bank-microservice:
+    image: bank-microservice:BuildJarFile  # Custom image for the bank microservice
+    container_name: aline-bank-microservice  # Name of the bank microservice container
+    ports:
+      - "8083:8083"  # Map host port 8083 to container port 8083
+    depends_on:
+      - db  # Ensure the db service is started before this service
+    networks:
+      - aline-financial-network  # Connect to the custom network
+
+  # Account microservice
+  account-microservice:
+    image: account-microservice:BuildJarFile  # Custom image for the account microservice
+    container_name: aline-account-microservice  # Name of the account microservice container
+    ports:
+      - "8072:8072"  # Map host port 8072 to container port 8072
+    depends_on:
+      - db  # Ensure the db service is started before this service
+    networks:
+      - aline-financial-network  # Connect to the custom network
+
+  # Transaction microservice
+  transaction-microservice:
+    image: transaction-microservice:BuildJarFile  # Custom image for the transaction microservice
+    container_name: aline-transaction-microservice  # Name of the transaction microservice container
+    ports:
+      - "8073:8073"  # Map host port 8073 to container port 8073
+    depends_on:
+      - db  # Ensure the db service is started before this service
+    networks:
+      - aline-financial-network  # Connect to the custom network
+
+  # API Gateway
+  aline-gateway:
+    image: aline-gateway:appSHLocal  # Custom image for the API gateway
+    container_name: aline-gateway-container  # Name of the API gateway container
+    ports:
+      - "8080:8080"  # Map host port 8080 to container port 8080
+    depends_on:
+      - db  # Ensure the db service is started before this service
+    networks:
+      - aline-financial-network  # Connect to the custom network
+
+  # Admin portal
+  admin-portal:
+    image: admin-portal:nginX  # Custom image for the admin portal
+    container_name: admin-portal-container  # Name of the admin portal container
+    ports:
+      - "3000:80"  # Map host port 3000 to container port 80
+    depends_on:
+      - aline-gateway  # Ensure the API gateway service is started before this service
+    networks:
+      - aline-financial-network  # Connect to the custom network
+
+  # Landing portal
+  landing-portal:
+    image: landing-portal:zayoDemo  # Custom image for the landing portal
+    container_name: landing-portal-container  # Name of the landing portal container
+    ports:
+      - "3001:80"  # Map host port 3001 to container port 80
+    depends_on:
+      - aline-gateway  # Ensure the API gateway service is started before this service
+    networks:
+      - aline-financial-network  # Connect to the custom network
+
+  # Member dashboard
+  member-dashboard:
+    image: member-dashboard:nginX4  # Custom image for the member dashboard
+    container_name: member-dashboard-container  # Name of the member dashboard container
+    ports:
+      - "3007:80"  # Map host port 3007 to container port 80
+    depends_on:
+      - aline-gateway  # Ensure the API gateway service is started before this service
+    networks:
+      - aline-financial-network  # Connect to the custom network
+
+# Define the custom network
+networks:
+  aline-financial-network:
+    driver: bridge  # Use the bridge network driver for the custom network
+
+# Define the secrets used for MySQL
+secrets:
+  mysql_root_password:
+    file: ./secrets/mysql_root_password.txt  # Path to the file containing the MySQL root password
+  mysql_password:
+    file: ./secrets/mysql_password.txt  # Path to the file containing the MySQL user password

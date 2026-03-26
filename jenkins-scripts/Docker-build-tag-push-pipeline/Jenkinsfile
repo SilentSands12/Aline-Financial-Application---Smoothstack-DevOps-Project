@@ -1,0 +1,103 @@
+/**
+ * Jenkins Pipeline Script for Building, Tagging, and Pushing Docker Images to Amazon ECR
+ *
+ * This pipeline script automates the process of building Docker images from a Git repository,
+ * tagging them, logging in to Amazon ECR, and pushing the images to the specified ECR repository.
+ * It utilizes Jenkins Pipeline capabilities along with Docker and AWS CLI commands.
+ */
+
+pipeline {
+    agent any
+
+    options {
+        // Disable resume to ensure pipeline execution starts from the beginning
+        disableResume()
+    }
+
+    environment {
+        // Define environment variables for AWS account, region, and repository details
+        AWS_ACCOUNT_ID = "767397723308"
+        AWS_REGION = "us-east-1"
+        IMAGE_TAG = "latest"
+        IMAGE_REPO_NAME = "aline_financial_repo"
+        REPOSITORY_URI = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${IMAGE_REPO_NAME}"
+        REPO_URL = 'https://git1.smoothstack.com/cohorts/2024/2024-03-11_cloud/organizations/deployment-dragons/jorge-canales/capstone-jenkins'
+        // Define path to email recipients file
+        // ENV for email recipients stored in workspace directory in EC2
+        EMAIL_RECIPIENTS_FILE = "${WORKSPACE}@tmp/jenkins-scripts/email-recipients.txt"
+        REPLY_TO_FILE = "${WORKSPACE}@tmp/jenkins-scripts/reply-to.txt"
+    }
+
+    stages {
+        stage('Logging into AWS ECR') {
+            steps {
+                script {
+                    // Login to Amazon ECR using AWS CLI
+                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'aws-credential', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+                        sh "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+                    }
+                }
+            }
+        }
+
+        stage('Clone Repository') {
+            steps {
+                // Clone the Git repository to Jenkins workspace
+                git branch: 'main', url: "${REPO_URL}", credentialsId: '1b8b1b5c-3d37-42cd-b110-a2596d989de9'
+            }
+        }
+
+        stage('Build and Push Images') {
+            steps {
+                script {
+                    // Define the list of microservices with their respective names and directories
+                    def microservices = [
+                        [name: 'account-micro-jenkins', dir: 'aline-account-microservice'],
+                        [name: 'bank-micro-jenkins', dir: 'aline-bank-microservice'],
+                        [name: 'aline-gateway-jenkins', dir: 'aline-gateway'],
+                        [name: 'trans-micro-jenkins', dir: 'aline-transaction-microservice'],
+                        [name: 'underwriter-micro-jenkins', dir: 'aline-underwriter-microservice'],
+                        [name: 'user-micro-jenkins', dir: 'aline-user-microservice'],
+                        [name: 'aline-admin-jenkins', dir: 'aline-admin-portal'],
+                        [name: 'aline-landing-jenkins', dir: 'aline-landing-portal'],
+                        [name: 'aline-member-jenkins', dir: 'member-dashboard']
+                    ]
+                    // Iterate over each microservice to build and push Docker images
+                    microservices.each { service ->
+                        dir(service.dir) {
+                            // Build the Docker image from the source code with --no-cache option
+                            sh "docker build --no-cache -t ${service.name}:${IMAGE_TAG} ."
+                            // Tag the Docker image with the repository URI
+                            sh "docker tag ${service.name}:${IMAGE_TAG} ${REPOSITORY_URI}:${service.name}-${IMAGE_TAG}"
+                            // Push the Docker image to the Amazon ECR repository
+                            sh "docker push ${REPOSITORY_URI}:${service.name}-${IMAGE_TAG}"
+                            // Remove the Docker image to free up space
+                            sh "docker rmi ${REPOSITORY_URI}:${service.name}-${IMAGE_TAG}"
+                            sh "docker rmi ${service.name}:${IMAGE_TAG}"
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            // Clean workspace after pipeline execution
+            cleanWs()
+
+            // Read email recipients from file and send notifications
+            script {
+                def recipients = readFile(env.EMAIL_RECIPIENTS_FILE).trim().split('\n')
+                def reply_to = readFile(env.REPLY_TO_FILE).trim().split('\n')
+
+                emailext subject: "Pipeline Notification - ${currentBuild.result}",
+                         body: "Pipeline completed with ${currentBuild.result}: ${env.BUILD_URL}",
+                         to: recipients.join(','),
+                         attachLog: true,
+                         mimeType: 'text/html',
+                         replyTo: reply_to.join(',')
+            }
+        }
+    }
+}

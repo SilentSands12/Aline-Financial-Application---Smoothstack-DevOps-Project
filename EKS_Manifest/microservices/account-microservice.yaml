@@ -1,0 +1,85 @@
+# Define the API version for the Deployment resource
+apiVersion: apps/v1
+# Specify the kind of Kubernetes resource, which is a Deployment in this case
+kind: Deployment
+# Metadata section for the Deployment
+metadata:
+  # The name of the Deployment
+  name: account-microservice
+# Specification of the Deployment
+spec:
+  # Number of pod replicas to run
+  replicas: 1
+  # Define the selector to match pods with specified labels
+  selector:
+    matchLabels:
+      app: account-microservice
+  # Template for the pod specification
+  template:
+    metadata:
+      labels:
+        # Label for identifying the pods
+        app: account-microservice
+        # Additional label for further classification
+        target: microservice
+    spec:
+      # Define the container(s) for the pod
+      containers:
+      - name: account-microservice-container
+        # Docker image for the container
+        image: 767397723308.dkr.ecr.us-east-1.amazonaws.com/aline_financial_repo:account-micro-jenkins-latest
+        # Policy to always pull the image
+        imagePullPolicy: Always
+        # Environment variables for the container
+        env:
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              # Reference the ConfigMap for the DB_HOST variable
+              name: backend-config
+              key: DB_HOST
+        - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              # Reference the Secret for the DB_USERNAME variable
+              name: mysql-secrets
+              key: MYSQL_USER
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              # Reference the Secret for the DB_PASSWORD variable
+              name: mysql-secrets
+              key: MYSQL_PASSWORD
+        - name: APP_PORT
+          valueFrom:
+            configMapKeyRef:
+              # Reference the ConfigMap for the APP_PORT variable
+              name: backend-config
+              key: APP_PORT_ACCOUNT
+        envFrom:
+        - configMapRef:
+            # Load all key-value pairs from the ConfigMap
+            name: backend-config
+        ports:
+        - containerPort: 8072  # Expose port 8072 on the container
+
+---
+# Define the API version for the Service resource
+apiVersion: v1
+# Specify the kind of Kubernetes resource, which is a Service in this case
+kind: Service
+# Metadata section for the Service
+metadata:
+  # The name of the Service
+  name: account-microservice-service
+# Specification of the Service
+spec:
+  # Define the type of the Service (ClusterIP is the default type for internal communication)
+  type: ClusterIP
+  # Define the selector to match the pods with specified labels
+  selector:
+    app: account-microservice   # Match the labels used by your account microservice deployment
+  ports:
+    - protocol: TCP  # Protocol for the Service
+      port: 8072     # Port exposed by the Service
+      targetPort: 8072  # Port on the account microservice pod to forward traffic to

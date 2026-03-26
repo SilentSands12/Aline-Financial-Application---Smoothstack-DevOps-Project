@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gateway-ingress
+  namespace: default  # Replace with your namespace if needed
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing  # Use this for an internet-facing ALB. For internal, use 'internal'.
+    alb.ingress.kubernetes.io/target-type: ip  # Use 'ip' for IP-based targets (default), 'instance' for instance targets
+spec:
+  ingressClassName: "alb"  # Ensure this is set to ALB
+  rules:
+    - http:
+        paths:
+          - path: /  # All traffic under /api will be routed to your gateway service
+            pathType: Prefix
+            backend:
+              service:
+                name: aline-gateway-service  # Name of your gateway service
+                port:
+                  number: 8080  # Port that your service exposes
+
+  # # Optional: Specify TLS configuration if you're using HTTPS
+  # tls:
+  # - hosts:
+  #   - "*"  # Use wildcard to match any host if not specifying a specific hostname
+  #   secretName: tls-secret  # Replace with your TLS secret name if using HTTPS

@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: underwriter-microservice-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: underwriter-microservice
+  template:
+    metadata:
+      labels:
+        app: underwriter-microservice
+    spec:
+      containers:
+      - name: underwriter-microservice-container
+        image: underwriter-microservice:BuildJarFile
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: DB_HOST
+          value: mysql-service  # Service name of the MySQL database
+        - name: MYSQL_USER
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secrets
+              key: MYSQL_USER
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secrets
+              key: MYSQL_PASSWORD
+        ports:
+        - containerPort: 8071
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: underwriter-microservice-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: underwriter-microservice   # Match the labels used by your underwriter microservice deployment
+  ports:
+    - protocol: TCP
+      port: 8071   # Port used by underwriter microservice
+      targetPort: 8071   # Port on the underwriter microservice pod to forward traffic to

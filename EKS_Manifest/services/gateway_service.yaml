@@ -1,0 +1,20 @@
+# Define the API version for the Service resource
+apiVersion: v1
+# Specify the kind of Kubernetes resource, which is a Service in this case
+kind: Service
+# Metadata section for the Service
+metadata:
+  # The name of the Service
+  name: aline-gateway-service
+# Specification of the Service
+spec:
+  # Type of the Service, which is LoadBalancer to expose the service externally
+  type: ClusterIP
+  # Selector to match pods with specified labels
+  selector:
+    app: aline-gateway
+  # Ports that the service should expose
+  ports:
+    - protocol: TCP
+      port: 8080   # Port on which the service is exposed externally
+      targetPort: 8080   # Port on the aline-gateway pod to forward traffic to

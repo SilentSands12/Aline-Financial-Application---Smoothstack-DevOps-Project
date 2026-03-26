@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+data:
+  APP_PORT_USER: "8070"
+  APP_PORT_UNDERWRITER: "8071"
+  APP_PORT_ACCOUNT: "8072"
+  APP_PORT_BANK: "8083"
+  APP_PORT_TRANSACTION: "8073"
+  APP_PORT: "8080"
+  DB_PORT: "3306"
+  DB_NAME: "aline_financial_db"
+  DB_HOST: "terraform-rds-jc.c9aaakygudzw.us-east-1.rds.amazonaws.com"
+  JWT_SECRET_KEY: "mf5ZIxRkF6IJj1AIVreII2ZQ4uhtJ8zC"
+  PORTAL_LANDING: "http://k8s-alinefinancial-b41e9faa9f-1405378233.us-east-1.elb.amazonaws.com:3001"
+  PORTAL_DASHBOARD: "http://k8s-alinefinancial-b41e9faa9f-1405378233.us-east-1.elb.amazonaws.com:3007"
+  PORTAL_ADMIN: "http://k8s-alinefinancial-b41e9faa9f-1405378233.us-east-1.elb.amazonaws.com:3000"
+  ENCRYPT_SECRET_KEY: "x2wOrQfY6RQIfE1ETwZtpflC19KyfN9N"

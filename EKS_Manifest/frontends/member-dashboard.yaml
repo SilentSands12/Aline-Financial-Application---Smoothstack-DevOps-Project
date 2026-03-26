@@ -1,0 +1,32 @@
+# Define the API version for the Deployment resource
+apiVersion: apps/v1
+# Specify the kind of Kubernetes resource, which is a Deployment in this case
+kind: Deployment
+# Metadata section for the Deployment
+metadata:
+  # The name of the Deployment
+  name: member-dashboard
+# Specification of the Deployment
+spec:
+  # Number of pod replicas to run
+  replicas: 1
+  # Define the selector to match pods with specified labels
+  selector:
+    matchLabels:
+      app: member-dashboard
+  # Template for the pod specification
+  template:
+    metadata:
+      labels:
+        # Label for identifying the pods
+        app: member-dashboard
+    spec:
+      # Define the container(s) for the pod
+      containers:
+      - name: member-dashboard
+        # Docker image for the container
+        image: 767397723308.dkr.ecr.us-east-1.amazonaws.com/aline_financial_repo:member-dashboard-9-17-2024-1
+        # Policy to always pull the image
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3007  # Expose port 3007 on the container

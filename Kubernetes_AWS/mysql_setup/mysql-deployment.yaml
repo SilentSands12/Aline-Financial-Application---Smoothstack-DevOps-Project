@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql-db
+  template:
+    metadata:
+      labels:
+        app: mysql-db
+    spec:
+      containers:
+      - name: mysql-db
+        image: mysql:image
+        ports:
+        - containerPort: 3306
+        volumeMounts:
+        - name: mysql-data
+          mountPath: /var/lib/mysql
+      volumes:
+      - name: mysql-data
+        hostPath:
+          path: /C/Users/Canal/OneDrive/Desktop/stuff/Python Projects/SmoothStacks/capstone/Kubernetes/data  # Replace with the host directory path
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: mysql-db  # Match the labels used by your MySQL deployment
+  ports:
+    - protocol: TCP
+      port: 3306   # Port used by MySQL
+      targetPort: 3306   # Port on the MySQL pod to forward traffic to

@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: member-dashboard-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: member-dashboard
+  template:
+    metadata:
+      labels:
+        app: member-dashboard
+    spec:
+      containers:
+      - name: member-dashboard
+        image: member-dashboard:nginX4
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: DB_HOST
+          value: mysql-service  # Service name of the MySQL database
+        - name: MYSQL_USER
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secrets
+              key: MYSQL_USER
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secrets
+              key: MYSQL_PASSWORD
+        ports:
+        - containerPort: 3007
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: member-dashboard-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: member-dashboard  # Match the labels used by your user microservice deployment
+  ports:
+    - protocol: TCP
+      port: 3007   # Port used by user microservice
+      targetPort: 80  # Port on the user microservice pod to forward traffic to

@@ -1,0 +1,4 @@
+Uncomment .env if you are using other configuration env variables
+through configMaps, secrets, or other meanings necessary
+
+.env

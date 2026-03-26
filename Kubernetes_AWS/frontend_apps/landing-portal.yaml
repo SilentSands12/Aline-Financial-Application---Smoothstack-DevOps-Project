@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: landing-portal
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: landing-portal
+  template:
+    metadata:
+      labels:
+        app: landing-portal
+    spec:
+      nodeSelector:
+        landing-portal: NodeGroup
+      containers:
+      - name: landing-portal
+        image: 767397723308.dkr.ecr.us-east-1.amazonaws.com/aline_financial_repo:landing-portal-fafo
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3001
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: landing-portal-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: landing-portal  # Match the labels used by your user microservice deployment
+  ports:
+    - protocol: TCP
+      port: 3001   # Port used by user microservice
+      targetPort: 80  # Port on the user microservice pod to forward traffic to

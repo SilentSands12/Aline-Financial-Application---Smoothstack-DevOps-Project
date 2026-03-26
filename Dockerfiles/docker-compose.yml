@@ -1,0 +1,120 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:latest
+    container_name: my-mysql-db
+    environment:
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root_password
+      MYSQL_DATABASE: aline_financial_db
+      MYSQL_USER: admin
+      MYSQL_PASSWORD_FILE: /run/secrets/mysql_password
+      # MYSQL_ALLOW_PUBLIC_KEY_RETRIEVAL: "true"  # Add this line
+    ports:
+      - "3307:3306"
+    secrets:
+      - mysql_root_password
+      - mysql_password
+    networks:
+      - aline-financial-network
+    volumes:
+      - /C/Users/Canal/OneDrive/Desktop/stuff/Python Projects/SmoothStacks/capstone/Dockerfiles/init-scripts:/docker-entrypoint-initdb.d
+      - /C/Users/Canal/OneDrive/Desktop/stuff/Python Projects/SmoothStacks/capstone/Dockerfiles/data:/var/lib/mysql
+  user-microservice:
+    image: user-microservice:BuildJarFile
+    container_name: aline-user-microservice
+    ports:
+      - "8070:8070"
+    depends_on:
+      - db
+    networks:
+      - aline-financial-network
+
+  underwriter-microservice:
+    image: underwriter-microservice:BuildJarFile
+    container_name: aline-underwriter-microservice
+    ports:
+      - "8071:8071"
+    depends_on:
+      - db
+    networks:
+      - aline-financial-network
+
+  bank-microservice:
+    image: bank-microservice:BuildJarFile
+    container_name: aline-bank-microservice
+    ports:
+      - "8083:8083"
+    depends_on:
+      - db
+    networks:
+      - aline-financial-network
+
+  account-microservice:
+    image: account-microservice:BuildJarFile
+    container_name: aline-account-microservice
+    ports:
+      - "8072:8072"
+    depends_on:
+      - db
+    networks:
+      - aline-financial-network
+
+  transaction-microservice:
+    image: transaction-microservice:BuildJarFile
+    container_name: aline-transaction-microservice
+    ports:
+      - "8073:8073"
+    depends_on:
+      - db
+    networks:
+      - aline-financial-network
+
+  aline-gateway:
+    image: aline-gateway:appSHLocal
+    container_name: aline-gateway-container
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    networks:
+      - aline-financial-network
+
+  admin-portal:
+    image: admin-portal:nginX
+    container_name: admin-portal-container
+    ports:
+      - "3000:80"
+    depends_on:
+      - aline-gateway
+    networks:
+      - aline-financial-network
+
+  landing-portal:
+    image: landing-portal:zayoDemo
+    container_name: landing-portal-container
+    ports:
+      - "3001:80"
+    depends_on:
+      - aline-gateway
+    networks:
+      - aline-financial-network
+
+  member-dashboard:
+    image: member-dashboard:nginX6
+    container_name: member-dashboard-container
+    ports:
+      - "3007:80"
+    depends_on:
+      - aline-gateway
+    networks:
+      - aline-financial-network
+
+networks:
+  aline-financial-network:
+    driver: bridge
+secrets:
+  mysql_root_password:
+    file: ./secrets/mysql_root_password.txt
+  mysql_password:
+    file: ./secrets/mysql_password.txt

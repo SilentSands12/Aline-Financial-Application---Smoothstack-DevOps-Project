@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: landing-portal-openshift
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: landing-portal-openshift
+  template:
+    metadata:
+      labels:
+        app: landing-portal-openshift
+    spec:
+      containers:
+      - name: landing-portal-openshift
+        image: 767397723308.dkr.ecr.us-east-1.amazonaws.com/aline_financial_repo:aline-landing-jenkins-latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3001
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: landing-portal-service
+spec:
+  type: LoadBalancer
+  selector: #********************** !!! Change line below for green deployemnt !!! **************************
+    app: landing-portal-openshift # Match the labels used by your user microservice deployment
+  ports:
+    - protocol: TCP
+      port: 3001   # Port used by user microservice
+      targetPort: 80  # Port on the user microservice pod to forward traffic to
+#      nodePort: 31001  # Specify the nodePort value here

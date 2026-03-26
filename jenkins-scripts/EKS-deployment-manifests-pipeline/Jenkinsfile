@@ -1,0 +1,109 @@
+/**
+ * Jenkins Pipeline for Kubernetes Deployment with AWS EKS
+ *
+ * This pipeline script automates the deployment of Kubernetes manifests to an AWS EKS cluster.
+ * It clones a Git repository, configures AWS CLI credentials, and applies Kubernetes manifests
+ * for configMaps, secrets, and services to the specified EKS cluster using kubectl commands.
+ *
+ * Environment:
+ * - KUBECONFIG: Path to the Kubernetes configuration file for Jenkins agent
+ *
+ * Stages:
+ * - Clone Repository: Clones the main branch of the Git repository using specified credentials
+ * - Configure AWS CLI: Configures AWS CLI with credentials to access the EKS cluster
+ * - Apply Kubernetes Manifests:
+ *   - Applies configMaps and secrets from 'EKS_Manifest/configMapsSecrets/mysql-secret.yaml'
+ *   - Applies services from 'EKS_Manifest/services' directory
+ *
+ * Post Actions:
+ * - Always outputs final status and cleans up the workspace after pipeline execution
+ */
+
+pipeline {
+    agent any
+
+    environment {
+        KUBECONFIG = '/var/lib/jenkins/.kube/config'
+        // ENV for email recipients stored in workspace directory in EC2
+        EMAIL_RECIPIENTS_FILE = "${WORKSPACE}@tmp/jenkins-scripts/email-recipients.txt"
+        REPLY_TO_FILE = "${WORKSPACE}@tmp/jenkins-scripts/reply-to.txt"
+    }
+
+    stages {
+
+        stage('Clone Repository') {
+            steps {
+                script {
+                    // Clone the repository
+                    git branch: 'main', url: 'https://git1.smoothstack.com/cohorts/2024/2024-03-11_cloud/organizations/deployment-dragons/jorge-canales/capstone-jenkins', credentialsId: '1b8b1b5c-3d37-42cd-b110-a2596d989de9'
+                }
+            }
+        }
+
+        stage('Configure AWS CLI') {
+            steps {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'aws-credential', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+                    script {
+                        // Source AWS credentials from the EC2 instance's shared credentials file
+                        sh '''
+                            export AWS_SHARED_CREDENTIALS_FILE=/var/lib/jenkins/.aws/credentials
+                            export AWS_CONFIG_FILE=/var/lib/jenkins/.aws/config
+                            echo "AWS Shared Credentials File: $AWS_SHARED_CREDENTIALS_FILE"
+                            echo "AWS Config File: $AWS_CONFIG_FILE"
+
+                            aws eks update-kubeconfig --region us-east-1 --name terraform-eks-cluster-jc
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Apply Kubernetes Manifests') {
+            steps {
+                dir('EKS_Manifest/configMapsSecrets') {
+                    script {
+                        // Output kubectl version and current context for debugging
+                        sh 'kubectl version --client'
+                        sh 'kubectl config current-context'
+
+                        // Apply the Kubernetes manifest
+                        sh 'kubectl apply -f mysql-secret.yaml'
+                    }
+                }
+
+                dir('EKS_Manifest/services') {
+                    script {
+                        // Output kubectl version and current context for debugging
+                        sh 'kubectl version --client'
+                        sh 'kubectl config current-context'
+
+                        // Apply the Kubernetes manifest
+                        sh 'kubectl apply -f .'
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            // Clean workspace after pipeline execution
+            cleanWs()
+
+            // Read email recipients from file and send notifications
+            script {
+                def recipients = readFile(env.EMAIL_RECIPIENTS_FILE).trim().split('\n')
+                def reply_to = readFile(env.REPLY_TO_FILE).trim().split('\n')
+
+                emailext subject: "Pipeline Notification - ${currentBuild.result}",
+                         body: "Pipeline completed with ${currentBuild.result}: ${env.BUILD_URL}",
+                         to: recipients.join(','),
+                         attachLog: true,
+                         mimeType: 'text/html',
+                         replyTo: reply_to.join(',')
+            }
+        }
+    }
+}
+
+

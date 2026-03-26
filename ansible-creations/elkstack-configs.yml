@@ -1,0 +1,156 @@
+- name: Install Elasticsearch, Kibana, and Logstash
+  hosts: all
+  become: yes
+  tasks:
+    # Gather facts about the hosts
+    - name: Gather facts
+      retries: 3
+      delay: 15
+      register: gather_facts_result
+      until: gather_facts_result.failed == false
+      setup:
+
+    # Read OS release information from /etc/os-release
+    - name: Read OS release information
+      command: cat /etc/os-release
+      register: os_release
+
+    # Debug and display the OS release information
+    - name: Debug OS Release Information
+      debug:
+        msg: "{{ os_release.stdout_lines }}"
+
+    # Parse the OS pretty name from the OS release information
+    - name: Parse OS release information
+      set_fact:
+        os_pretty_name: "{{ os_release.stdout_lines | select('match', '^PRETTY_NAME=') | first | regex_replace('^PRETTY_NAME=\"(.*)\"$', '\\1') }}"
+
+    - name: Update apt package list
+      apt:
+        update_cache: yes
+      when: os_pretty_name is search('Ubuntu')
+
+    # Install prerequisites for Elasticsearch on Ubuntu
+    - name: Install prerequisites on Ubuntu
+      apt:
+        name:
+          - apt-transport-https
+          - openjdk-11-jdk
+        state: present
+        install_recommends: yes
+        update_cache: yes
+      when: os_pretty_name is search('Ubuntu')
+
+    # Add Elastic Stack GPG key for Ubuntu
+    - name: Add Elastic GPG key on Ubuntu
+      apt_key:
+        url: https://artifacts.elastic.co/GPG-KEY-elasticsearch
+        state: present
+      when: os_pretty_name is search('Ubuntu')
+
+    # Add Elastic Stack repository for Ubuntu
+    - name: Add Elastic repo on Ubuntu
+      apt_repository:
+        repo: "deb https://artifacts.elastic.co/packages/8.x/apt stable main"
+        state: present
+      when: os_pretty_name is search('Ubuntu')
+
+    # Install Elasticsearch on Ubuntu
+    - name: Install Elasticsearch on Ubuntu
+      apt:
+        name: elasticsearch
+        state: present
+      when: os_pretty_name is search('Ubuntu')
+
+    # Reload the systemd manager configuration
+    - name: Reload systemd configuration
+      command: systemctl daemon-reload
+      when: os_pretty_name is search('Ubuntu')
+      notify: Restart Elasticsearch
+
+    # Ensure Elasticsearch is started and enabled on Ubuntu
+    - name: Start and enable Elasticsearch on Ubuntu
+      service:
+        name: elasticsearch
+        state: started
+        enabled: true
+      when: os_pretty_name is search('Ubuntu')
+
+    # Install Logstash on RHEL-based systems
+    - name: Install Logstash on RHEL
+      dnf:
+        name:
+          - java-11-openjdk
+          - logstash
+        state: present
+      when: os_pretty_name is search('Red Hat Enterprise Linux')
+
+    # Add Elastic GPG key for Logstash on RHEL
+    - name: Add Elastic GPG key on RHEL
+      command: rpm --import https://artifacts.elastic.co/GPG-KEY-elasticsearch
+      when: os_pretty_name is search('Red Hat Enterprise Linux')
+
+    # Create Elastic repo on RHEL for Logstash
+    - name: Create Elastic repo on RHEL for Logstash
+      copy:
+        dest: /etc/yum.repos.d/logstash.repo
+        content: |
+          [logstash]
+          name=Logstash repository for 8.x packages
+          baseurl=https://artifacts.elastic.co/packages/8.x/yum
+          gpgcheck=1
+          gpgkey=https://artifacts.elastic.co/GPG-KEY-elasticsearch
+          enabled=1
+          autorefresh=1
+          type=rpm-md
+      when: os_pretty_name is search('Red Hat Enterprise Linux')
+
+    # Ensure Logstash is started and enabled on RHEL
+    - name: Start and enable Logstash on RHEL
+      service:
+        name: logstash
+        state: started
+        enabled: true
+      when: os_pretty_name is search('Red Hat Enterprise Linux')
+
+    # Install Kibana on Amazon Linux
+    - name: Install Kibana on Amazon Linux
+      dnf:
+        name: kibana
+        state: present
+      when: os_pretty_name is search('Amazon Linux')
+
+    # Add Elastic GPG key for Kibana on Amazon Linux
+    - name: Add Elastic GPG key on Amazon Linux
+      command: rpm --import https://artifacts.elastic.co/GPG-KEY-elasticsearch
+      when: os_pretty_name is search('Amazon Linux')
+
+    # Create Elastic repo on Amazon Linux for Kibana
+    - name: Create Elastic repo on Amazon Linux for Kibana
+      copy:
+        dest: /etc/yum.repos.d/kibana.repo
+        content: |
+          [kibana]
+          name=Kibana repository for 8.x packages
+          baseurl=https://artifacts.elastic.co/packages/8.x/yum
+          gpgcheck=1
+          gpgkey=https://artifacts.elastic.co/GPG-KEY-elasticsearch
+          enabled=1
+          autorefresh=1
+          type=rpm-md
+      when: os_pretty_name is search('Amazon Linux')
+
+    # Ensure Kibana is started and enabled on Amazon Linux
+    - name: Start and enable Kibana on Amazon Linux
+      service:
+        name: kibana
+        state: started
+        enabled: true
+      when: os_pretty_name is search('Amazon Linux')
+
+    # Display debug message confirming installation
+    - name: Display installation completion
+      debug:
+        msg: |
+          OS: {{ os_pretty_name }} |
+          Elastic Stack component installed and running on respective instances.

@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: landing-portal-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: landing-portal
+  template:
+    metadata:
+      labels:
+        app: landing-portal
+    spec:
+      containers:
+      - name: landing-portal
+        image: landing-portal:nginX
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: DB_HOST
+          value: mysql-service  # Service name of the MySQL database
+        - name: MYSQL_USER
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secrets
+              key: MYSQL_USER
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secrets
+              key: MYSQL_PASSWORD
+        ports:
+        - containerPort: 3001
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: landing-portal-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: landing-portal  # Match the labels used by your user microservice deployment
+  ports:
+    - protocol: TCP
+      port: 3001   # Port used by user microservice
+      targetPort: 80  # Port on the user microservice pod to forward traffic to

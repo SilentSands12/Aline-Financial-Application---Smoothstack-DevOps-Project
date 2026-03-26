@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: debug-pod
+  namespace: kube-system
+spec:
+  containers:
+  - name: debug
+    image: busybox
+    command: ["sleep", "3600"]
+    volumeMounts:
+    - name: config-volume
+      mountPath: /etc/cloudwatch-agent
+  volumes:
+  - name: config-volume
+    configMap:
+      name: cloudwatch-agent-config

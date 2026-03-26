@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: account-config
+data:
+  APP_PORT: "8072"
+  DB_PORT: "3306"
+  DB_NAME: "aline_financial_db"
+  JWT_SECRET_KEY: "mf5ZIxRkF6IJj1AIVreII2ZQ4uhtJ8zC"
+  PORTAL_LANDING: "http://adcc783a3f20a46d286fb0518bfdbd50-549983581.us-east-1.elb.amazonaws.com:3001"
+  PORTAL_DASHBOARD: "http://a1d7c89e1aee245798e6caf06a4617ee-1368818078.us-east-1.elb.amazonaws.com:3007"
+  PORTAL_ADMIN: "http://a0dd30f6efcf04198b0bc473fd409edb-84665307.us-east-1.elb.amazonaws.com:3000"
+  ENCRYPT_SECRET_KEY: "x2wOrQfY6RQIfE1ETwZtpflC19KyfN9N"

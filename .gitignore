@@ -1,0 +1,45 @@
+/vE
+
+# Remove all pytest/cache related directories
+*.pyc
+*.pyo
+__pycache__/
+.pytest_cache/
+
+/tests/user_generated_details_pytest.txt
+/tests/application_generated_details_pytest.txt
+/database_generation/random
+/tests/.env
+
+# bash scripts to run all applications and end them
+.end_applications.sh
+.start_apps.sh
+
+# secrets used for docker-compose and Kubernetes
+Dockerfiles/secrets/
+Kubernetes/mysql_setup/mysql-secret.yaml
+
+# data volume used for docker-compose
+Dockerfiles/data/
+Kubernetes/data/
+
+# Demo Intro Folder for demo introduction
+Demo Intro
+
+# Remove dockerfile from start-here directory
+start-here/Dockerfile
+
+# Removal of .terraform files that I dont need and have too much storage
+# Terraform local cache
+**/.terraform/
+
+# Terraform state files
+*.tfstate
+*.tfstate.*
+
+# Crash logs
+crash.log
+*.log
+
+# Terraform lock file (optional ignore depending on team rules)
+.terraform.lock.hcl

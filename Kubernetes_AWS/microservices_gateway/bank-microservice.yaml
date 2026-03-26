@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bank-microservice
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bank-microservice
+  template:
+    metadata:
+      labels:
+        app: bank-microservice
+        target: microservice
+    spec:
+      nodeSelector:
+        bank-microservice: NodeGroup
+      containers:
+      - name: bank-microservice-container
+        image: 767397723308.dkr.ecr.us-east-1.amazonaws.com/aline_financial_repo:bank-microservice-fafo
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: DB_HOST
+          valueFrom:
+            configMapRef:
+              name: backend-config
+              KEY: DB_HOST
+        - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secrets
+              key: MYSQL_USER
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secrets
+              key: MYSQL_PASSWORD
+        envFrom:
+          - configMapRef:
+              name: backend-config
+        - name: APP_HOST
+          valueFrom:
+            configMapRef:
+              name: backend-config
+              key: APP_HOST_BANK
+        ports:
+        - containerPort: 8083
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bank-microservice-service
+spec:
+  type: ClusterIP
+  selector:
+    app: bank-microservice   # Match the labels used by your bank microservice deployment
+  ports:
+    - protocol: TCP
+      port: 8083   # Port used by bank microservice
+      targetPort: 8083   # Port on the bank microservice pod to forward traffic to

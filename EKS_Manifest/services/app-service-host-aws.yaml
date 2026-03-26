@@ -1,0 +1,37 @@
+# Define the API version for the Service resource
+apiVersion: v1
+# Specify the kind of Kubernetes resource, which is a Service in this case
+kind: Service
+# Metadata section for the Service
+metadata:
+  # The name of the Service
+  name: app-service-host-aws
+# Specification of the Service
+spec:
+  # clusterIP set to None means this Service is not assigned a cluster-internal IP address
+  clusterIP: None
+  # Selector to match pods with specified labels
+  selector:
+    target: microservice
+  # Ports that the service should expose
+  ports:
+    - protocol: TCP
+      name: user-microservice
+      port: 8070   # Port used by user-microservice
+      targetPort: 8070   # Port on the user-microservice pods to forward traffic to
+    - protocol: TCP
+      name: underwriter-microservice
+      port: 8071   # Port used by underwriter-microservice
+      targetPort: 8071   # Port on the underwriter-microservice pods to forward traffic to
+    - protocol: TCP
+      name: bank-microservice
+      port: 8083   # Port used by bank-microservice
+      targetPort: 8083   # Port on the bank-microservice pods to forward traffic to
+    - protocol: TCP
+      name: account-microservice
+      port: 8072   # Port used by account-microservice
+      targetPort: 8072   # Port on the account-microservice pods to forward traffic to
+    - protocol: TCP
+      name: transaction-microservice
+      port: 8073   # Port used by transaction-microservice
+      targetPort: 8073   # Port on the transaction-microservice pods to forward traffic to

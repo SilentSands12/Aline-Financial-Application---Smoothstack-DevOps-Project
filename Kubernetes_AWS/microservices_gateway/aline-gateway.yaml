@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aline-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: aline-gateway
+  template:
+    metadata:
+      labels:
+        app: aline-gateway
+    spec:
+      nodeSelector:
+        aline-gateway-microservice: NodeGroup
+      containers:
+      - name: aline-gateway-container
+        image: 767397723308.dkr.ecr.us-east-1.amazonaws.com/aline_financial_repo:aline-gateway-scratch
+        imagePullPolicy: IfNotPresent
+        ports:
+          - containerPort: 8080
+        env:
+          - name: APP_SERVICE_HOST
+            value: app-service-host-aws.default.svc.cluster.local
+        envFrom:
+          - configMapRef:
+              name: aline-gateway-config-fafo

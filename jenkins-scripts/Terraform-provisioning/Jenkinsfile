@@ -1,0 +1,131 @@
+/**
+ * Jenkins Pipeline for Terraform Infrastructure Management
+ *
+ * This pipeline script automates the process of linting Terraform code, cloning a Git repository, checking the remote state of the Terraform-managed infrastructure, and applying or destroying infrastructure changes accordingly. It sends email notifications upon pipeline completion.
+ *
+ * Stages:
+ * - Terraform Lint: Runs `tflint` to lint the Terraform code and ensures there are no issues before proceeding.
+ * - Clone Repository: Clones the specified branch of the Git repository using provided credentials.
+ * - Check Remote State: Initializes Terraform and checks the remote state file. Based on the state, it determines whether to apply new changes or destroy the existing infrastructure and reapply changes.
+ * - Terraform Action: Executes Terraform commands to apply or destroy and then apply infrastructure changes based on the previous state check.
+ *
+ * Post Actions:
+ * - Always cleans up the workspace after pipeline execution.
+ * - Sends an email notification with the result of the pipeline execution and a link to the build log.
+ */
+
+pipeline {
+    agent any
+
+    environment {
+        // ENV for email recipients stored in workspace directory in EC2
+        EMAIL_RECIPIENTS_FILE = "${WORKSPACE}@tmp/jenkins-scripts/email-recipients.txt"
+        REPLY_TO_FILE = "${WORKSPACE}@tmp/jenkins-scripts/reply-to.txt"
+    }
+
+    stages {
+        stage('Clone Repository') {
+            steps {
+                script {
+                    // Clone the repository
+                    git branch: 'main', url: 'https://git1.smoothstack.com/cohorts/2024/2024-03-11_cloud/organizations/deployment-dragons/jorge-canales/capstone-jenkins', credentialsId: '1b8b1b5c-3d37-42cd-b110-a2596d989de9'
+                }
+            }
+        }
+
+        stage('Check for Changes') {
+            steps {
+                script {
+                    // Check if there are any changes in the my-terraform-files directory
+                    def changes = sh(script: 'git diff --name-only HEAD~1 HEAD | grep my-terraform-files/', returnStatus: true)
+                    if (changes != 0) {
+                        echo "No changes detected in my-terraform-files directory. Skipping Terraform actions."
+                        currentBuild.result = 'SUCCESS'
+                        return
+                    }
+                }
+            }
+        }
+
+        stage('Terraform Init') {
+            steps {
+                dir('my-terraform-files') {
+                    script {
+                        // Initialize Terraform
+                        sh 'terraform init'
+                    }
+                }
+            }
+        }
+
+        stage('Check Remote State') {
+            steps {
+                dir('my-terraform-files') {
+                    script {
+                        // Check the remote state file
+                        def stateStatus = sh(script: 'terraform show -json | jq -r .values.root_module.resources[].mode', returnStdout: true).trim()
+                        if (stateStatus == 'managed') {
+                            echo "Remote state indicates infrastructure is present. Running terraform destroy followed by terraform apply."
+                            env.ACTION = 'destroy-and-apply'
+                        } else {
+                            echo "Remote state indicates no infrastructure is present. Running terraform apply."
+                            env.ACTION = 'apply'
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Terraform Action') {
+            steps {
+                dir('my-terraform-files') {
+                    script {
+                        if (env.ACTION == 'destroy-and-apply') {
+                            // Run terraform destroy and then terraform apply
+                            echo "Running terraform destroy"
+                            sh 'terraform destroy --auto-approve'
+                            echo "Running terraform apply"
+                            sh 'terraform apply --auto-approve'
+                        } else if (env.ACTION == 'apply') {
+                            // Run terraform apply
+                            echo "Running terraform apply"
+                            sh 'terraform apply --auto-approve'
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Terraform Lint') {
+            steps {
+                dir('my-terraform-files') {
+                    script {
+                        // Run tflint
+                        echo "Running tflint"
+                        sh 'tflint'
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            // Clean workspace after pipeline execution
+            cleanWs()
+
+            // Read email recipients from file and send notifications
+            script {
+                def recipients = readFile(env.EMAIL_RECIPIENTS_FILE).trim().split('\n')
+                def reply_to = readFile(env.REPLY_TO_FILE).trim().split('\n')
+
+                emailext subject: "Pipeline Notification - ${currentBuild.result}",
+                         body: "Pipeline completed with ${currentBuild.result}: ${env.BUILD_URL}",
+                         to: recipients.join(','),
+                         attachLog: true,
+                         mimeType: 'text/html',
+                         replyTo: reply_to.join(',')
+            }
+        }
+    }
+}

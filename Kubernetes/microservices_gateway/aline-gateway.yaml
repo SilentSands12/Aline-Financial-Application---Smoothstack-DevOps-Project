@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aline-gateway-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: aline-gateway
+  template:
+    metadata:
+      labels:
+        app: aline-gateway
+    spec:
+      containers:
+      - name: aline-gateway-container
+        image: aline-gateway:appSHLocal
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: DB_HOST
+          value: mysql-service  # Service name of the MySQL database
+        - name: MYSQL_USER
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secrets
+              key: MYSQL_USER
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secrets
+              key: MYSQL_PASSWORD
+        ports:
+        - containerPort: 8080
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: aline-gateway-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: aline-gateway  # Match the labels used by your aline-gateway deployment
+  ports:
+    - protocol: TCP
+      port: 8080   # Port used by aline-gateway
+      targetPort: 8080   # Port on the aline-gateway pod to forward traffic to

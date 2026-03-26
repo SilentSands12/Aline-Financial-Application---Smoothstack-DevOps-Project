@@ -1,0 +1,19 @@
+---
+- name: Gather system information
+  hosts: all
+  tasks:
+    - name: Gather and display hostname
+      command: hostname
+      register: hostname
+
+    - name: Display hostname
+      debug:
+        msg: "The hostname is {{ hostname.stdout }}"
+
+    - name: Gather and display OS version
+      command: cat /etc/os-release
+      register: os_release
+
+    - name: Display OS version
+      debug:
+        msg: "OS release information is {{ os_release.stdout }}"

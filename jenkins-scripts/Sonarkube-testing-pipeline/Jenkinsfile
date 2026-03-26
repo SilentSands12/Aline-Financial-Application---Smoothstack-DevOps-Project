@@ -1,0 +1,170 @@
+/**
+ * Jenkins Pipeline for Continuous Integration and Code Quality Analysis
+ *
+ * This pipeline script automates the CI/CD process for multiple microservices. It clones a Git repository,
+ * installs Angular CLI, runs tests for various microservices, and performs SonarQube analysis for code quality.
+ * It utilizes Jenkins Pipeline capabilities with Node.js, Maven, and SonarScanner tools configured.
+ *
+ * Environment:
+ * - REPO_URL: URL of the Git repository containing the microservices
+ * - SONAR_SCANNER_HOME: SonarScanner tool configuration for code quality analysis
+ *
+ * Stages:
+ * - Clone Repository: Clones the main branch of the Git repository using specified credentials
+ * - Install Angular CLI: Installs Angular CLI globally for Angular-based microservices
+ * - Run Tests: Runs tests for each microservice, skipping tests for specific portals and using Maven for Java projects
+ * - SonarQube Analysis: Performs code quality analysis using SonarQube for each microservice, configured separately
+ *
+ * Post Actions:
+ * - Always cleans up the workspace after pipeline execution
+ */
+
+pipeline {
+    // Define the agent to run the pipeline. 'any' means it can run on any available agent.
+    agent any
+
+    // Pipeline options
+    options {
+        // Disable pipeline resume capability to ensure clean state on every run
+        disableResume()
+    }
+
+    // Define tools needed for the pipeline
+    tools {
+        // Use the Node.js installation labeled "NodeJS-aline-financial-jc"
+        nodejs "NodeJS-aline-financial-jc"
+    }
+
+    // Define environment variables
+    environment {
+        // URL of the Git repository
+        REPO_URL = 'https://git1.smoothstack.com/cohorts/2024/2024-03-11_cloud/organizations/deployment-dragons/jorge-canales/capstone-jenkins'
+
+        // Set SonarScanner tool for code quality analysis
+        SONAR_SCANNER_HOME = tool name: 'SonarScanner-aline-financial-jc', type: 'hudson.plugins.sonar.SonarRunnerInstallation'
+
+        // Update PATH to include SonarScanner binary directory
+        PATH = "${env.PATH}:${SONAR_SCANNER_HOME}/bin"
+
+        // ENV for email recipients stored in workspace directory in EC2
+        EMAIL_RECIPIENTS_FILE = "${WORKSPACE}@tmp/jenkins-scripts/email-recipients.txt"
+        REPLY_TO_FILE = "${WORKSPACE}@tmp/jenkins-scripts/reply-to.txt"
+    }
+
+    stages {
+        // Stage to clone the repository
+        stage('Clone Repository') {
+            steps {
+                // Clone the 'main' branch of the repository using the specified credentials
+                git branch: 'main', url: "${REPO_URL}", credentialsId: '1b8b1b5c-3d37-42cd-b110-a2596d989de9'
+            }
+        }
+
+        // Stage to install Angular CLI
+        stage('Install Angular CLI') {
+            steps {
+                // Install Angular CLI globally using npm
+                sh 'npm install -g @angular/cli@12.2.7'
+            }
+        }
+
+        // Stage to run tests
+        stage('Run Tests') {
+            steps {
+                script {
+                    // Define a list of microservices with their names and directories
+                    def microservices = [
+                        [name: 'account-micro-jenkins', dir: 'aline-account-microservice'],
+                        [name: 'bank-micro-jenkins', dir: 'aline-bank-microservice'],
+                        [name: 'aline-gateway-jenkins', dir: 'aline-gateway'],
+                        [name: 'trans-micro-jenkins', dir: 'aline-transaction-microservice'],
+                        [name: 'underwriter-micro-jenkins', dir: 'aline-underwriter-microservice'],
+                        [name: 'user-micro-jenkins', dir: 'aline-user-microservice'],
+                        [name: 'aline-admin-jenkins', dir: 'aline-admin-portal'],
+                        [name: 'aline-landing-jenkins', dir: 'aline-landing-portal'],
+                        [name: 'aline-member-jenkins', dir: 'member-dashboard']
+                    ]
+                    // Iterate over each microservice
+                    microservices.each { service ->
+                        dir(service.dir) {
+                            if (service.name in ['aline-admin-jenkins', 'aline-landing-jenkins']) {
+                                // For admin and landing portals, install npm packages and run tests
+                                sh "npm install"
+                                sh "npm test"
+                            } else if (service.name == 'aline-member-jenkins') {
+                                // Skip tests for member dashboard
+                                echo "Skipping tests for ${service.name}"
+                            } else {
+                                // For other services, run Maven clean test without skipping tests
+                                sh "mvn clean test -DskipTests"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Stage to run SonarQube analysis
+        stage('SonarQube Analysis') {
+            steps {
+                script {
+                    // Define the same list of microservices
+                    def microservices = [
+                        [name: 'account-micro-jenkins', dir: 'aline-account-microservice'],
+                        [name: 'bank-micro-jenkins', dir: 'aline-bank-microservice'],
+                        [name: 'aline-gateway-jenkins', dir: 'aline-gateway'],
+                        [name: 'trans-micro-jenkins', dir: 'aline-transaction-microservice'],
+                        [name: 'underwriter-micro-jenkins', dir: 'aline-underwriter-microservice'],
+                        [name: 'user-micro-jenkins', dir: 'aline-user-microservice'],
+                        [name: 'aline-admin-jenkins', dir: 'aline-admin-portal'],
+                        [name: 'aline-landing-jenkins', dir: 'aline-landing-portal'],
+                        [name: 'aline-member-jenkins', dir: 'member-dashboard']
+                    ]
+                    // Iterate over each microservice for SonarQube analysis
+                    microservices.each { service ->
+                        dir(service.dir) {
+                            if (service.name in ['aline-admin-jenkins', 'aline-landing-jenkins', 'aline-member-jenkins']) {
+                                // Run SonarQube analysis for non-Maven projects (Node.js/Angular)
+                                withSonarQubeEnv('sonarkube-aline-financial') {
+                                    sh """
+                                    sonar-scanner \
+                                    -Dsonar.projectKey=${service.name} \
+                                    -Dsonar.sources=. \
+                                    -Dsonar.host.url=http://18.210.156.246:9000 \
+                                    -Dsonar.login=admin \
+                                    -Dsonar.password=a43453b0b58b40b18ede8e138c611c4a
+                                    """
+                                }
+                            } else {
+                                // Run SonarQube analysis for Maven projects
+                                withSonarQubeEnv('sonarkube-aline-financial') {
+                                    sh "mvn sonar:sonar -Dsonar.login=admin -Dsonar.password=a43453b0b58b40b18ede8e138c611c4a"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            // Clean workspace after pipeline execution
+            cleanWs()
+
+            // Read email recipients from file and send notifications
+            script {
+                def recipients = readFile(env.EMAIL_RECIPIENTS_FILE).trim().split('\n')
+                def reply_to = readFile(env.REPLY_TO_FILE).trim().split('\n')
+
+                emailext subject: "Pipeline Notification - ${currentBuild.result}",
+                         body: "Pipeline completed with ${currentBuild.result}: ${env.BUILD_URL}",
+                         to: recipients.join(','),
+                         attachLog: true,
+                         mimeType: 'text/html',
+                         replyTo: reply_to.join(',')
+            }
+        }
+    }
+}

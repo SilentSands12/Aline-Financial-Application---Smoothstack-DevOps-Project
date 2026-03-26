@@ -1,0 +1,114 @@
+- name: Install OpenSSH and Certbot
+  hosts: all
+  become: yes
+  tasks:
+    # Task to gather facts about the hosts
+    - name: Gather facts
+      retries: 3
+      delay: 15
+      register: gather_facts_result
+      until: gather_facts_result.failed == false
+      setup:
+
+    # Task to read OS release information from /etc/os-release
+    - name: Read OS release information
+      command: cat /etc/os-release
+      register: os_release
+
+    # Task to debug and display the OS release information
+    - name: Debug OS Release Information
+      debug:
+        msg: "{{ os_release.stdout_lines }}"
+
+    # Task to parse the OS pretty name from the OS release information
+    - name: Parse OS release information
+      set_fact:
+        os_pretty_name: "{{ os_release.stdout_lines | select('match', '^PRETTY_NAME=') | first | regex_replace('^PRETTY_NAME=\"(.*)\"$', '\\1') }}"
+
+    # Task to install OpenSSH on Debian-based systems (Ubuntu)
+    - name: Install OpenSSH on Debian-based systems (Ubuntu)
+      apt:
+        name: openssh-server
+        state: latest
+      when: os_pretty_name is search('Ubuntu 18.04.6 LTS')
+
+    # Task to add Certbot repository for Ubuntu
+    - name: Add Certbot repository for Ubuntu
+      apt_repository:
+        repo: ppa:certbot/certbot
+        state: present
+      when: os_pretty_name is search('Ubuntu 18.04.6 LTS')
+
+    # Task to install Certbot on Debian-based systems (Ubuntu)
+    - name: Install Certbot on Debian-based systems (Ubuntu)
+      apt:
+        name: certbot
+        state: latest
+      when: os_pretty_name is search('Ubuntu 18.04.6 LTS')
+
+    # Task to create or update the DNF cache on RHEL systems
+    - name: Make dnf cache on RHEL
+      command: dnf makecache
+      when: os_pretty_name is search('Red Hat Enterprise Linux')
+
+    # Task to update the DNF cache on RHEL systems with retries
+    - name: Update dnf cache on RHEL
+      dnf:
+        update_cache: yes
+      when: os_pretty_name is search('Red Hat Enterprise Linux')
+      retries: 8
+      delay: 30
+      register: update_cache_result
+      until: update_cache_result.failed == false
+
+    # Task to install OpenSSH Server on RedHat-based systems (RHEL) using dnf
+    - name: Install OpenSSH Server on RedHat-based systems (RHEL) using dnf
+      dnf:
+        name: openssh-server
+        state: present
+      when: os_pretty_name is search('Red Hat Enterprise Linux')
+
+    # Task to install Certbot 2.11.0 on RedHat-based systems (RHEL) using pip
+    - name: Install Certbot 2.11.0 on RedHat-based systems (RHEL) using pip
+      pip:
+        name: certbot==2.11.0
+        state: present
+      when: os_pretty_name is search('Red Hat Enterprise Linux')
+
+    # Task to install OpenSSH on Amazon Linux 2023 using dnf
+    - name: Install OpenSSH on Amazon Linux 2023 using dnf
+      dnf:
+        name: openssh-server
+        state: present
+      when: os_pretty_name is search('Amazon Linux 2023.5.20240722')
+
+    # Task to install Certbot 2.11.0 on Amazon Linux 2023 using pip
+    - name: Install Certbot 2.11.0 on Amazon Linux 2023 using pip
+      pip:
+        name: certbot==2.11.0
+        state: present
+      when: os_pretty_name is search('Amazon Linux 2023.5.20240722')
+
+    # Task to get the OpenSSH version installed on the system
+    - name: Get OpenSSH version
+      command: "{{ '/usr/bin/ssh -V 2>&1' if os_pretty_name in ('Red Hat Enterprise Linux 9.4 (Plow)', 'Amazon Linux 2023.5.20240722') else '/usr/bin/ssh -V 2>&1' }}"
+      register: ssh_version
+      ignore_errors: yes
+      failed_when: false
+      changed_when: false
+
+    # Task to get the Certbot version installed on the system
+    - name: Get Certbot version
+      command: "{{ '/usr/local/bin/certbot' if os_pretty_name in ('Red Hat Enterprise Linux 9.4 (Plow)', 'Amazon Linux 2023.5.20240722') else '/usr/bin/certbot' }} --version"
+      register: certbot_version
+      ignore_errors: yes
+      failed_when: false
+      changed_when: false
+
+    # Task to display the OpenSSH and Certbot versions along with the OS pretty name
+    - name: Display OpenSSH and Certbot versions
+      debug:
+        msg: |
+          OS Pretty Name: {{ os_pretty_name }} |
+          OpenSSH Version: {{ ssh_version.stderr | default('Not installed') }} |
+          Certbot Version: {{ certbot_version.stdout | default('Not installed') }}

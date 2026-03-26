@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: landing-portal-blue
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: landing-portal-blue
+  template:
+    metadata:
+      labels:
+        app: landing-portal-blue
+    spec:
+      containers:
+      - name: landing-portal-blue
+        image: 767397723308.dkr.ecr.us-east-1.amazonaws.com/aline_financial_repo:landing-portal-9-17-2024-blue
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3001

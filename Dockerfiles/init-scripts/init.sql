@@ -1,0 +1,4 @@
+CREATE DATABASE IF NOT EXISTS aline_financial_db;
+CREATE USER IF NOT EXISTS 'admin'@'%' IDENTIFIED BY 'nimda321';
+GRANT ALL PRIVILEGES ON aline_financial_db.* TO 'admin'@'%';
+FLUSH PRIVILEGES;
