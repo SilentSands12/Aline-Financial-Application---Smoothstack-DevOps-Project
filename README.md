@@ -2,7 +2,9 @@
 
 ### _Microservices-Based Cloud Deployment with DevOps Automation_
 
-📄 **Project Source:**
+---
+
+📄 **Project Source:** [Client Demo Presentation](Client_Demo.pptx)
 
 ---
 
@@ -160,7 +162,7 @@ This project highlights real-world DevOps and cloud engineering skills:
 - Database Schema
 
 ```markdown
-![Architecture Diagram](Resources-CI_CD_Architecture\CI_CD_Architecture_Design.png)
+![Architecture Diagram](Resources-CI_CD_Architecture/CI_CD_Architecture_Design.png)
 ```
 
 ---
